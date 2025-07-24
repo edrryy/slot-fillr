@@ -4,16 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarCheck, User, Mail, Phone, MessageSquare } from "lucide-react";
+import { CalendarCheck, User, Mail, Phone, MessageSquare, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { type Venue } from "@/components/VenueSelector";
 
 interface BookingFormProps {
+  selectedVenue: Venue;
   selectedDate: Date | undefined;
   selectedSlot: string | null;
   onBookingComplete: () => void;
 }
 
-export function BookingForm({ selectedDate, selectedSlot, onBookingComplete }: BookingFormProps) {
+export function BookingForm({ selectedVenue, selectedDate, selectedSlot, onBookingComplete }: BookingFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -30,10 +32,10 @@ export function BookingForm({ selectedDate, selectedSlot, onBookingComplete }: B
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedDate || !selectedSlot) {
+    if (!selectedVenue || !selectedDate || !selectedSlot) {
       toast({
         title: "Missing Information",
-        description: "Please select a date and time slot.",
+        description: "Please select a venue, date and time slot.",
         variant: "destructive",
       });
       return;
@@ -55,25 +57,25 @@ export function BookingForm({ selectedDate, selectedSlot, onBookingComplete }: B
     
     toast({
       title: "Booking Confirmed!",
-      description: `Your appointment has been scheduled for ${selectedDate.toLocaleDateString()} at ${selectedSlot.split('-')[1]}.`,
+      description: `Your appointment has been scheduled at ${selectedVenue.name} for ${selectedDate.toLocaleDateString()} at ${selectedSlot.split('-')[2]}.`,
     });
     
     setIsSubmitting(false);
     onBookingComplete();
   };
 
-  if (!selectedDate || !selectedSlot) {
+  if (!selectedVenue || !selectedDate || !selectedSlot) {
     return (
       <Card className="p-8 text-center shadow-[var(--shadow-soft)]">
         <CalendarCheck className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
         <h3 className="text-lg font-medium text-muted-foreground">
-          Select a date and time to continue with your booking
+          Select a venue, date and time to continue with your booking
         </h3>
       </Card>
     );
   }
 
-  const selectedTime = selectedSlot.split('-')[1];
+  const selectedTime = selectedSlot.split('-')[2];
 
   return (
     <Card className="p-6 shadow-[var(--shadow-soft)]">
@@ -83,6 +85,10 @@ export function BookingForm({ selectedDate, selectedSlot, onBookingComplete }: B
       <div className="bg-gradient-to-r from-primary/5 to-accent/5 p-4 rounded-lg mb-6 border border-primary/10">
         <h3 className="font-medium text-sm text-primary mb-2">Appointment Details</h3>
         <div className="space-y-1 text-sm">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-primary" />
+            <span>{selectedVenue.name}</span>
+          </div>
           <div className="flex items-center gap-2">
             <CalendarCheck className="h-4 w-4 text-primary" />
             <span>{selectedDate.toLocaleDateString()} at {selectedTime}</span>

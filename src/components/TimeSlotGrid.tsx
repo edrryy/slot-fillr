@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { type Venue } from "@/components/VenueSelector";
 
 interface TimeSlot {
   id: string;
@@ -12,27 +13,38 @@ interface TimeSlot {
 }
 
 interface TimeSlotGridProps {
+  selectedVenue: Venue;
   selectedDate: Date | undefined;
   selectedSlot: string | null;
   onSlotSelect: (slotId: string) => void;
 }
 
 // Mock data - in a real app, this would come from an API
-const generateTimeSlots = (date: Date | undefined): TimeSlot[] => {
-  if (!date) return [];
+const generateTimeSlots = (venue: Venue, date: Date | undefined): TimeSlot[] => {
+  if (!date || !venue) return [];
   
   const slots: TimeSlot[] = [];
-  const startHour = 9;
-  const endHour = 17;
+  
+  // Different venues have different operating hours
+  const venueHours: Record<string, { start: number; end: number; slotSize: number }> = {
+    'pkm-1': { start: 8, end: 18, slotSize: 30 }, // Downtown Medical Center
+    'pkm-2': { start: 9, end: 17, slotSize: 30 }, // Northside Health Clinic
+    'pkm-3': { start: 7, end: 19, slotSize: 30 }, // Westfield Family Practice (7:30 AM - 7:00 PM)
+    'pkm-4': { start: 8, end: 17, slotSize: 60 }, // Eastgate Wellness Center (longer slots)
+  };
+  
+  const { start: startHour, end: endHour, slotSize } = venueHours[venue.id] || { start: 9, end: 17, slotSize: 30 };
   
   for (let hour = startHour; hour < endHour; hour++) {
-    for (let minute = 0; minute < 60; minute += 30) {
+    for (let minute = 0; minute < 60; minute += slotSize) {
       const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-      const randomAvailable = Math.floor(Math.random() * 5);
-      const total = 5;
+      // Different venues have different availability patterns
+      const baseAvailability = venue.id === 'pkm-3' ? 8 : venue.id === 'pkm-4' ? 3 : 5;
+      const randomAvailable = Math.floor(Math.random() * (baseAvailability + 1));
+      const total = baseAvailability;
       
       slots.push({
-        id: `${date.toISOString().split('T')[0]}-${timeString}`,
+        id: `${venue.id}-${date.toISOString().split('T')[0]}-${timeString}`,
         time: timeString,
         available: randomAvailable,
         total,
@@ -43,8 +55,8 @@ const generateTimeSlots = (date: Date | undefined): TimeSlot[] => {
   return slots;
 };
 
-export function TimeSlotGrid({ selectedDate, selectedSlot, onSlotSelect }: TimeSlotGridProps) {
-  const timeSlots = generateTimeSlots(selectedDate);
+export function TimeSlotGrid({ selectedVenue, selectedDate, selectedSlot, onSlotSelect }: TimeSlotGridProps) {
+  const timeSlots = generateTimeSlots(selectedVenue, selectedDate);
 
   if (!selectedDate) {
     return (
@@ -59,9 +71,12 @@ export function TimeSlotGrid({ selectedDate, selectedSlot, onSlotSelect }: TimeS
 
   return (
     <Card className="p-6 shadow-[var(--shadow-soft)]">
-      <h2 className="text-xl font-semibold mb-4 text-foreground">
+      <h2 className="text-xl font-semibold mb-2 text-foreground">
         Available Times - {selectedDate.toLocaleDateString()}
       </h2>
+      <p className="text-sm text-muted-foreground mb-4">
+        {selectedVenue.name} • {selectedVenue.operatingHours}
+      </p>
       
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {timeSlots.map((slot) => {
